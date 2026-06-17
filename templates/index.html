@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Hub - Modern Release Tracker</title>
+    <meta name="description" content="Stay up to date with Google Cloud BigQuery releases. Filter, search, and tweet updates with this real-time modern dashboard.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <!-- Background Glow Blobs for premium ambiance -->
+    <div class="glow-blob blob-1"></div>
+    <div class="glow-blob blob-2"></div>
+    <div class="glow-blob blob-3"></div>
+
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-main">
+                <div class="logo-area">
+                    <div class="logo-icon">
+                        <i data-lucide="database" class="icon-pulse"></i>
+                        <span class="logo-badge">BQ</span>
+                    </div>
+                    <div class="logo-text">
+                        <h1>BigQuery Release Hub</h1>
+                        <p>Real-time Google Cloud updates & announcements</p>
+                    </div>
+                </div>
+                <div class="actions-area">
+                    <button id="btn-refresh" class="btn-primary" aria-label="Refresh notes">
+                        <i data-lucide="refresh-cw" id="spinner-icon"></i>
+                        <span>Refresh Notes</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- METRICS SUMMARY GRID -->
+            <div class="metrics-grid" id="metrics-grid">
+                <div class="metric-card active" id="stat-all" role="button" tabindex="0">
+                    <div class="metric-info">
+                        <span class="metric-label">Total Updates</span>
+                        <span class="metric-value" id="val-all">-</span>
+                    </div>
+                    <div class="metric-icon bg-all">
+                        <i data-lucide="layers"></i>
+                    </div>
+                </div>
+                <div class="metric-card" id="stat-features" role="button" tabindex="0">
+                    <div class="metric-info">
+                        <span class="metric-label">Features</span>
+                        <span class="metric-value" id="val-features">-</span>
+                    </div>
+                    <div class="metric-icon bg-features">
+                        <i data-lucide="zap"></i>
+                    </div>
+                </div>
+                <div class="metric-card" id="stat-issues" role="button" tabindex="0">
+                    <div class="metric-info">
+                        <span class="metric-label">Issues & Fixes</span>
+                        <span class="metric-value" id="val-issues">-</span>
+                    </div>
+                    <div class="metric-icon bg-issues">
+                        <i data-lucide="alert-circle"></i>
+                    </div>
+                </div>
+                <div class="metric-card" id="stat-announcements" role="button" tabindex="0">
+                    <div class="metric-info">
+                        <span class="metric-label">Announcements</span>
+                        <span class="metric-value" id="val-announcements">-</span>
+                    </div>
+                    <div class="metric-icon bg-announcements">
+                        <i data-lucide="megaphone"></i>
+                    </div>
+                </div>
+                <div class="metric-card" id="stat-breaking" role="button" tabindex="0">
+                    <div class="metric-info">
+                        <span class="metric-label">Breaking / Other</span>
+                        <span class="metric-value" id="val-breaking">-</span>
+                    </div>
+                    <div class="metric-icon bg-breaking">
+                        <i data-lucide="shield-alert"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- FILTERS & CONTROLS -->
+        <section class="controls-section">
+            <div class="search-box">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="search-input" placeholder="Search release notes by keywords, SQL functions, APIs..." aria-label="Search release notes">
+                <button id="search-clear" class="btn-icon" style="display: none;" aria-label="Clear search">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div class="controls-right">
+                <div class="filter-chips" id="filter-chips">
+                    <button class="chip active" data-filter="all">All</button>
+                    <button class="chip" data-filter="Feature">Features</button>
+                    <button class="chip" data-filter="Issue">Issues</button>
+                    <button class="chip" data-filter="Announcement">Announcements</button>
+                    <button class="chip" data-filter="Breaking">Breaking</button>
+                    <button class="chip" data-filter="other">Others</button>
+                </div>
+                
+                <div class="sort-selector">
+                    <label for="sort-select">Sort:</label>
+                    <select id="sort-select" aria-label="Sort order">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- MAIN FEED / TIMELINE -->
+        <main class="feed-section">
+            <!-- Feed timeline visual indicator line -->
+            <div class="timeline-line"></div>
+            
+            <!-- Cards Container -->
+            <div class="notes-container" id="notes-container">
+                <!-- Skeleton cards loaded by default -->
+                <div class="skeleton-card">
+                    <div class="skeleton-header">
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-badge"></div>
+                    </div>
+                    <div class="skeleton-body">
+                        <div class="skeleton-line long"></div>
+                        <div class="skeleton-line medium"></div>
+                        <div class="skeleton-line short"></div>
+                    </div>
+                    <div class="skeleton-footer">
+                        <div class="skeleton-btn"></div>
+                        <div class="skeleton-btn"></div>
+                    </div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton-header">
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-badge"></div>
+                    </div>
+                    <div class="skeleton-body">
+                        <div class="skeleton-line medium"></div>
+                        <div class="skeleton-line long"></div>
+                    </div>
+                    <div class="skeleton-footer">
+                        <div class="skeleton-btn"></div>
+                        <div class="skeleton-btn"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="empty-state" style="display: none;">
+                <div class="empty-illustration">
+                    <i data-lucide="search-code"></i>
+                </div>
+                <h3>No Release Notes Found</h3>
+                <p>We couldn't find any release notes matching your search or filters. Try adjusting your terms or check back later.</p>
+                <button id="btn-reset-filters" class="btn-secondary">Clear All Filters</button>
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="app-footer-bar">
+            <p>BigQuery Release Hub &copy; 2026. Data sourced from <a href="https://docs.cloud.google.com/feeds/bigquery-release-notes.xml" target="_blank" rel="noopener">Google Cloud BigQuery RSS Feed</a>.</p>
+            <p class="footer-meta">Powered by Python Flask + Vanilla Javascript & CSS. Made with love for developers.</p>
+        </footer>
+    </div>
+
+    <!-- TWEET COMPOSER MODAL (Glassmorphic Custom Dialog) -->
+    <div class="modal-overlay" id="tweet-modal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title-area">
+                    <i data-lucide="twitter" class="twitter-blue"></i>
+                    <h2>Compose Update Tweet</h2>
+                </div>
+                <button class="btn-icon" id="btn-close-modal" aria-label="Close modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="card-preview-mini">
+                    <span id="tweet-date-badge" class="mini-date">June 16, 2026</span>
+                    <span id="tweet-type-badge" class="badge">Feature</span>
+                    <div id="tweet-preview-content" class="mini-content">Use Gemini Cloud Assist to optimize query performance in BigQuery...</div>
+                </div>
+                
+                <div class="textarea-container">
+                    <label for="tweet-textarea">Edit Tweet Draft:</label>
+                    <textarea id="tweet-textarea" rows="5" maxlength="280"></textarea>
+                    <div class="textarea-footer">
+                        <span class="character-count"><span id="char-current">0</span>/280</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-secondary" id="btn-cancel-tweet">Cancel</button>
+                <button class="btn-primary" id="btn-send-tweet">
+                    <i data-lucide="send"></i>
+                    <span>Tweet Now</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
