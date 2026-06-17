@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 from flask import Flask, render_template, jsonify, request
 
-app = Flask(__name__, template_folder='.', static_folder='static')
+app = Flask(__name__)
 CACHE_FILE = 'notes_cache.json'
 FEED_URL = "https://docs.cloud.google.com/feeds/bigquery-release-notes.xml"
 

@@ -2,10 +2,6 @@
 
 A premium, real-time Google Cloud BigQuery Release Notes dashboard built with **Python Flask** (backend parser and caching) and a dynamic **HTML5, JavaScript, and CSS3** frontend. It splits compound date updates into fine-grained cards, supports full text searching, and includes a custom Tweet composer modal.
 
-### 🌐 Live Deployment
-**View the live static dashboard here:**  
-👉 **[https://pruthvikrishnang.github.io/PruthviKrishna-event-talks-app/](https://pruthvikrishnang.github.io/PruthviKrishna-event-talks-app/)** *(No installation or code cloning required!)*
-
 ---
 
 ## ✨ Features
@@ -24,40 +20,34 @@ A premium, real-time Google Cloud BigQuery Release Notes dashboard built with **
 
 ---
 
-## 🏗️ Dual-Compatibility Architecture
-
-To make the application extremely flexible, it supports two running modes:
-1.  **Flask Backend Server (Local Host):** Uses [app.py](app.py) to fetch the feed, parse XML tags on the server via `BeautifulSoup`, and cache parsed results in `notes_cache.json`.
-2.  **Static Client (GitHub Pages):** If hosted statically (where Python cannot run), [static/js/main.js](static/js/main.js) automatically falls back to fetching the XML feed over a free, raw CORS proxy (`https://api.allorigins.win`) and parses XML data on-the-fly inside the user's browser using `DOMParser`.
-
----
-
 ## 💻 Running the Project Locally
 
-### 1. Flask Development Server (Recommended)
-This runs the full backend server with caching capabilities.
+To run the application locally on your machine, follow these instructions:
 
+### 1. Clone the repository
 ```bash
-# Clone the repository
 git clone https://github.com/pruthvikrishnang/PruthviKrishna-event-talks-app.git
 cd PruthviKrishna-event-talks-app
+```
 
-# Install dependencies
+### 2. Install dependencies
+Make sure you have Python 3.x installed, then install the required Python libraries:
+```bash
 pip install -r requirements.txt
+```
 
-# Run the Flask app
+### 3. Start the Flask Server
+Run the Flask server backend:
+```bash
 python app.py
 ```
 
-Open your browser and navigate to **[http://127.0.0.1:5000](http://127.0.0.1:5000)**.
-
-### 2. Static HTML Launch
-You can also run the interface locally without starting a Python server:
-Simply double-click the [index.html](index.html) file to open it in your browser. The JavaScript will detect the lack of a Flask backend and automatically fetch and parse feed elements using the browser-based CORS proxy fallback.
+### 4. Access the Application
+Open your browser and navigate to:  
+👉 **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
 
 ---
 
 ## 🛠️ Tech Stack
-*   **Backend:** Python 3.14, Flask (v3.0+), requests, BeautifulSoup4
+*   **Backend:** Python 3.14, Flask (v3.1.3), requests, BeautifulSoup4
 *   **Frontend:** HTML5, CSS3 (Vanilla CSS variables, flexbox, grid, keyframe animations), JavaScript (ES6+), Lucide Icons
-*   **Hosting:** GitHub Pages (Static Deployment)
