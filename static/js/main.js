@@ -1,5 +1,6 @@
 // Global State
 let releaseNotes = [];
+let currentlyFilteredNotes = [];
 let currentFilter = 'all';
 let currentSearch = '';
 let currentSort = 'newest';
@@ -7,6 +8,15 @@ let selectedNoteForTweet = null;
 
 // Document Ready
 document.addEventListener('DOMContentLoaded', () => {
+    // Check and apply theme preference
+    const storedTheme = localStorage.getItem('theme');
+    const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+    if (storedTheme === 'light' || (!storedTheme && systemPrefersLight)) {
+        document.body.classList.add('light-theme');
+    } else {
+        document.body.classList.remove('light-theme');
+    }
+    
     // Initialise UI Elements
     initElements();
     // Fetch release notes
@@ -133,6 +143,109 @@ function initElements() {
             hideTweetModal();
         }
     });
+
+    // Theme Toggle implementation
+    const themeIcon = document.getElementById('theme-icon');
+    const isLightTheme = document.body.classList.contains('light-theme');
+    if (themeIcon) {
+        themeIcon.setAttribute('data-lucide', isLightTheme ? 'moon' : 'sun');
+    }
+
+    const btnThemeToggle = document.getElementById('btn-theme-toggle');
+    if (btnThemeToggle) {
+        btnThemeToggle.addEventListener('click', () => {
+            const body = document.body;
+            body.classList.toggle('light-theme');
+            const isLight = body.classList.contains('light-theme');
+            
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            
+            const icon = document.getElementById('theme-icon');
+            if (icon) {
+                icon.setAttribute('data-lucide', isLight ? 'moon' : 'sun');
+                lucide.createIcons();
+            }
+            
+            showToast('Theme Updated', `Switched to ${isLight ? 'Light' : 'Dark'} mode.`, 'info');
+        });
+    }
+
+    // Copy All visible notes logic
+    const btnCopyAll = document.getElementById('btn-copy-all');
+    if (btnCopyAll) {
+        btnCopyAll.addEventListener('click', () => {
+            if (currentlyFilteredNotes.length === 0) {
+                showToast('Nothing to Copy', 'The visible release notes list is empty.', 'error');
+                return;
+            }
+            
+            let text = `BIGQUERY RELEASE NOTES SUMMARY\nGenerated: ${new Date().toLocaleDateString()}\nTotal Updates: ${currentlyFilteredNotes.length}\n\n`;
+            
+            currentlyFilteredNotes.forEach((note) => {
+                text += `--------------------------------------------------\n`;
+                text += `[${note.date}] [${note.type}]\n`;
+                text += `${note.plain_text}\n`;
+                text += `Link: ${note.link}\n\n`;
+            });
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(
+                    'Copied All Notes', 
+                    `Copied all ${currentlyFilteredNotes.length} visible updates to clipboard.`, 
+                    'success'
+                );
+            }).catch(err => {
+                console.error('Copy all failed:', err);
+                showToast('Copy Failed', 'Could not copy notes to clipboard.', 'error');
+            });
+        });
+    }
+
+    // Export CSV logic
+    const btnExportCsv = document.getElementById('btn-export-csv');
+    if (btnExportCsv) {
+        btnExportCsv.addEventListener('click', () => {
+            if (currentlyFilteredNotes.length === 0) {
+                showToast('Nothing to Export', 'The visible release notes list is empty.', 'error');
+                return;
+            }
+            
+            const escapeCsv = (str) => {
+                if (str === null || str === undefined) return '';
+                let clean = str.toString();
+                clean = clean.replace(/"/g, '""');
+                if (clean.includes(',') || clean.includes('"') || clean.includes('\n') || clean.includes('\r')) {
+                    clean = `"${clean}"`;
+                }
+                return clean;
+            };
+            
+            let csvContent = '\uFEFF'; // UTF-8 BOM
+            csvContent += 'Date,Type,Doc Link,Description\n';
+            
+            currentlyFilteredNotes.forEach(note => {
+                csvContent += `${escapeCsv(note.date)},${escapeCsv(note.type)},${escapeCsv(note.link)},${escapeCsv(note.plain_text)}\n`;
+            });
+            
+            try {
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `bigquery_release_notes_${new Date().toISOString().slice(0, 10)}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                showToast('Export Complete', `Exported ${currentlyFilteredNotes.length} notes to CSV file.`, 'success');
+            } catch (err) {
+                console.error('CSV export failed:', err);
+                showToast('Export Failed', 'Unable to create CSV file download.', 'error');
+            }
+        });
+    }
 
     // Initialize lucide icons on bootstrap
     lucide.createIcons();
@@ -300,7 +413,10 @@ function applyFilters() {
         return currentSort === 'newest' ? dateB - dateA : dateA - dateB;
     });
     
-    // 4. Render notes
+    // 4. Update the global filtered reference for Copy All & Export CSV
+    currentlyFilteredNotes = filtered;
+    
+    // 5. Render notes
     renderNotes(filtered);
 }
 

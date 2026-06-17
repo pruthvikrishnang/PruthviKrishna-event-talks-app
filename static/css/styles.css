@@ -1234,3 +1234,147 @@ body {
         justify-content: center;
     }
 }
+
+/* ==========================================================================
+   SM Buttons, Theme Toggle, & Light Theme Support
+   ========================================================================== */
+
+/* SM Buttons & Action Container */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.5rem 0.9rem;
+    font-size: 0.825rem;
+    border-radius: 8px;
+}
+
+.btn-icon-only {
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+}
+
+.actions-area {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Light Theme variables override */
+body.light-theme {
+    --bg-base: #f1f5f9;
+    --bg-surface: rgba(255, 255, 255, 0.75);
+    --bg-surface-hover: rgba(255, 255, 255, 0.95);
+    --bg-solid: #ffffff;
+    --border-color: rgba(15, 23, 42, 0.08);
+    --border-glow: rgba(59, 130, 246, 0.15);
+    
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    
+    --feature-bg: rgba(13, 148, 136, 0.06);
+    --feature-border: rgba(13, 148, 136, 0.2);
+    --feature-color: #0d9488;
+    
+    --issue-bg: rgba(220, 38, 38, 0.06);
+    --issue-border: rgba(220, 38, 38, 0.2);
+    --issue-color: #dc2626;
+    
+    --announcement-bg: rgba(219, 39, 119, 0.06);
+    --announcement-border: rgba(219, 39, 119, 0.2);
+    --announcement-color: #db2777;
+    
+    --breaking-bg: rgba(217, 119, 6, 0.06);
+    --breaking-border: rgba(217, 119, 6, 0.2);
+    --breaking-color: #d97706;
+    
+    --other-bg: rgba(79, 70, 229, 0.06);
+    --other-border: rgba(79, 70, 229, 0.2);
+    --other-color: #4f46e5;
+    
+    --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    --glow-shadow: 0 0 15px rgba(59, 130, 246, 0.08);
+}
+
+body.light-theme {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+}
+
+body.light-theme .glow-blob {
+    opacity: 0.35;
+}
+
+body.light-theme .logo-text h1 {
+    background: linear-gradient(to right, #0f172a, #334155);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+body.light-theme .timeline-line {
+    background: linear-gradient(to bottom, rgba(59, 130, 246, 0.2) 0%, rgba(139, 92, 246, 0.05) 100%);
+}
+
+body.light-theme .note-card::after {
+    background: #f1f5f9;
+}
+
+body.light-theme .skeleton-line {
+    background: rgba(15, 23, 42, 0.06);
+}
+
+body.light-theme .skeleton-badge, body.light-theme .skeleton-btn {
+    background: rgba(15, 23, 42, 0.06);
+}
+
+body.light-theme .skeleton-line::before, body.light-theme .skeleton-badge::before, body.light-theme .skeleton-btn::before {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(0, 0, 0, 0.02) 20%,
+        rgba(0, 0, 0, 0.04) 60%,
+        rgba(255, 255, 255, 0) 100%
+    );
+}
+
+body.light-theme .card-date {
+    color: #0f172a;
+}
+
+body.light-theme .card-body strong {
+    color: #0f172a;
+}
+
+body.light-theme .card-body code {
+    background: rgba(0, 0, 0, 0.04);
+    color: #b91c1c;
+    border: 1px solid rgba(0, 0, 0, 0.02);
+}
+
+body.light-theme .textarea-container textarea {
+    color: #0f172a;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+body.light-theme .modal-card {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 30px rgba(59, 130, 246, 0.05);
+}
+
+body.light-theme .toast {
+    background: #ffffff;
+}
+
+body.light-theme .app-footer-bar a {
+    color: #0f172a;
+}
+

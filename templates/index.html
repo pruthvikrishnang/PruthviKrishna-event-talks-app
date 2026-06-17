@@ -35,6 +35,9 @@
                     </div>
                 </div>
                 <div class="actions-area">
+                    <button id="btn-theme-toggle" class="btn-secondary btn-icon-only" aria-label="Toggle theme" title="Toggle color theme">
+                        <i data-lucide="sun" id="theme-icon"></i>
+                    </button>
                     <button id="btn-refresh" class="btn-primary" aria-label="Refresh notes">
                         <i data-lucide="refresh-cw" id="spinner-icon"></i>
                         <span>Refresh Notes</span>
@@ -118,6 +121,17 @@
                         <option value="newest">Newest First</option>
                         <option value="oldest">Oldest First</option>
                     </select>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="btn-copy-all" class="btn-secondary btn-sm" title="Copy visible notes to clipboard">
+                        <i data-lucide="copy"></i>
+                        <span>Copy All</span>
+                    </button>
+                    <button id="btn-export-csv" class="btn-secondary btn-sm" title="Export visible notes to CSV">
+                        <i data-lucide="download"></i>
+                        <span>Export CSV</span>
+                    </button>
                 </div>
             </div>
         </section>
