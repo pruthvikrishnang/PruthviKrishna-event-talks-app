@@ -138,7 +138,23 @@ function initElements() {
     lucide.createIcons();
 }
 
-// Fetch Notes from Flask Backend API
+// Process fetched release notes data
+function handleData(notes, source, isRefresh) {
+    // Assign unique IDs to notes to avoid serialization issues in HTML
+    releaseNotes = notes.map((note, index) => ({ ...note, id: index }));
+    
+    // Update metrics counters
+    calculateMetrics(releaseNotes);
+    
+    // Render the filtered/sorted notes
+    applyFilters();
+    
+    if (isRefresh) {
+        showToast('Refresh Successful', `Notes successfully fetched from ${source === 'network' ? 'Google Cloud feed' : 'local cache'}.`, 'success');
+    }
+}
+
+// Fetch Notes from Flask Backend API (with CORS proxy static fallback)
 function fetchNotes(forceRefresh = false) {
     const btnRefresh = document.getElementById('btn-refresh');
     const spinner = document.getElementById('spinner-icon');
@@ -150,40 +166,144 @@ function fetchNotes(forceRefresh = false) {
     // Load skeleton loaders inside container
     renderSkeletons();
     
-    let url = '/api/notes';
-    if (forceRefresh) {
-        url += '?refresh=true';
-    }
+    // Detect whether we should fetch from Flask local backend or GitHub Pages static host
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     
-    fetch(url)
+    if (isLocal) {
+        let url = '/api/notes';
+        if (forceRefresh) {
+            url += '?refresh=true';
+        }
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server returned status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    handleData(data.notes, data.source, forceRefresh);
+                } else {
+                    throw new Error(data.error || 'Failed to fetch release notes.');
+                }
+            })
+            .catch(err => {
+                console.warn('Flask local backend failed, falling back to client-side parsing:', err);
+                fallbackToClientParsing(forceRefresh);
+            });
+    } else {
+        // GitHub Pages or other static deployment, fetch and parse via CORS proxy
+        fallbackToClientParsing(forceRefresh);
+    }
+}
+
+// Fetch and parse the BigQuery XML feed directly in the browser using a CORS proxy
+function fallbackToClientParsing(isRefresh = false) {
+    const btnRefresh = document.getElementById('btn-refresh');
+    const spinner = document.getElementById('spinner-icon');
+    
+    const feedUrl = "https://docs.cloud.google.com/feeds/bigquery-release-notes.xml";
+    // Using AllOrigins (free, fast, no-auth raw CORS proxy)
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`;
+    
+    fetch(proxyUrl)
         .then(response => {
             if (!response.ok) {
-                throw new Error(`Server returned status: ${response.status}`);
+                throw new Error(`CORS proxy returned status: ${response.status}`);
             }
-            return response.json();
+            return response.text();
         })
-        .then(data => {
-            if (data.success) {
-                // Assign unique IDs to notes to avoid serialization issues in HTML
-                releaseNotes = data.notes.map((note, index) => ({ ...note, id: index }));
-                
-                // Update metrics counters
-                calculateMetrics(releaseNotes);
-                
-                // Render the filtered/sorted notes
-                applyFilters();
-                
-                if (forceRefresh) {
-                    showToast('Refresh Successful', 'Notes successfully fetched from Google Cloud feed.', 'success');
-                }
-            } else {
-                throw new Error(data.error || 'Failed to fetch release notes.');
+        .then(xmlText => {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+            
+            // Check for parsing errors
+            const parseError = xmlDoc.getElementsByTagName("parsererror");
+            if (parseError.length > 0) {
+                throw new Error("XML parser error in browser");
             }
+            
+            const entries = xmlDoc.getElementsByTagName("entry");
+            const parsedNotes = [];
+            
+            // Atom namespace might be default, querySelectorAll works well on text/xml docs
+            for (let i = 0; i < entries.length; i++) {
+                const entry = entries[i];
+                const dateStr = entry.getElementsByTagName("title")[0]?.textContent?.trim() || "";
+                const updatedStr = entry.getElementsByTagName("updated")[0]?.textContent?.trim() || "";
+                
+                // Get alternate link
+                let linkHref = "";
+                const links = entry.getElementsByTagName("link");
+                for (let j = 0; j < links.length; j++) {
+                    if (links[j].getAttribute("rel") === "alternate" || !links[j].getAttribute("rel")) {
+                        linkHref = links[j].getAttribute("href") || "";
+                        break;
+                    }
+                }
+                if (!linkHref && links.length > 0) {
+                    linkHref = links[0].getAttribute("href") || "";
+                }
+                
+                const contentElm = entry.getElementsByTagName("content")[0];
+                const htmlContent = contentElm ? contentElm.textContent : "";
+                
+                // Parse the entry's HTML to split it by H3 categories
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContent;
+                
+                let currentType = null;
+                let currentContent = [];
+                
+                const saveItem = (cType, cContent) => {
+                    const tempContainer = document.createElement('div');
+                    cContent.forEach(child => tempContainer.appendChild(child.cloneNode(true)));
+                    const contentHtmlStr = tempContainer.innerHTML.trim();
+                    if (!contentHtmlStr && !cType) return;
+                    
+                    const plainText = tempContainer.textContent.trim();
+                    const firstA = tempContainer.querySelector('a');
+                    let itemLink = firstA ? firstA.getAttribute('href') : linkHref;
+                    
+                    if (itemLink && itemLink.startsWith('/')) {
+                        itemLink = 'https://docs.cloud.google.com' + itemLink;
+                    }
+                    
+                    parsedNotes.push({
+                        date: dateStr,
+                        updated: updatedStr,
+                        type: cType || 'General',
+                        content_html: contentHtmlStr,
+                        plain_text: plainText,
+                        link: itemLink || linkHref
+                    });
+                };
+                
+                tempDiv.childNodes.forEach(child => {
+                    if (child.nodeName === 'H3') {
+                        saveItem(currentType, currentContent);
+                        currentContent = [];
+                        currentType = child.textContent.trim();
+                    } else {
+                        currentContent.push(child);
+                    }
+                });
+                
+                saveItem(currentType, currentContent);
+            }
+            
+            if (parsedNotes.length === 0) {
+                throw new Error("No updates parsed from XML feed.");
+            }
+            
+            // Handle parsed notes data
+            handleData(parsedNotes, 'network', isRefresh);
         })
         .catch(err => {
-            console.error('Error fetching release notes:', err);
-            showToast('Loading Failed', err.message || 'Check Flask server logs.', 'error');
-            // If we have cached copies in local memory array from prior loads, keep them, else clear
+            console.error('Client-side XML parsing failed:', err);
+            showToast('Loading Failed', 'Could not fetch or parse notes. Try refreshing again.', 'error');
             if (releaseNotes.length === 0) {
                 renderNotes([]);
             } else {
