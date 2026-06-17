@@ -1378,3 +1378,17 @@ body.light-theme .app-footer-bar a {
     color: #0f172a;
 }
 
+/* Search Keyword Highlighting */
+mark.search-highlight {
+    background: rgba(0, 242, 254, 0.25);
+    color: #ffffff;
+    border-radius: 4px;
+    padding: 0.1rem 0.25rem;
+    font-weight: 500;
+}
+
+body.light-theme mark.search-highlight {
+    background: rgba(59, 130, 246, 0.18);
+    color: #0f172a;
+}
+

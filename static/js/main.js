@@ -37,6 +37,15 @@ function initElements() {
         fetchNotes(true);
     });
 
+    // Global hotkey to focus search on "/" keypress
+    document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            searchInput.focus();
+            searchInput.select();
+        }
+    });
+
     // Search input typing
     searchInput.addEventListener('input', (e) => {
         currentSearch = e.target.value.trim().toLowerCase();
@@ -48,7 +57,18 @@ function initElements() {
         applyFilters();
     });
 
-    // Clear search
+    // Clear search via Escape key
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            searchInput.value = '';
+            currentSearch = '';
+            searchClear.style.display = 'none';
+            applyFilters();
+            searchInput.blur();
+        }
+    });
+
+    // Clear search click
     searchClear.addEventListener('click', () => {
         searchInput.value = '';
         currentSearch = '';
@@ -97,9 +117,9 @@ function initElements() {
         applyFilters();
     });
 
-    // Stats Grid Click handlers
+    // Stats Grid Click & Keyboard Handlers (Accessibility)
     document.querySelectorAll('.metric-card').forEach(card => {
-        card.addEventListener('click', () => {
+        const handleCardAction = () => {
             const cardId = card.id;
             let filterVal = 'all';
             
@@ -120,6 +140,15 @@ function initElements() {
             card.classList.add('active');
             
             applyFilters();
+        };
+
+        card.addEventListener('click', handleCardAction);
+        
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleCardAction();
+            }
         });
     });
 
@@ -170,7 +199,7 @@ function initElements() {
         });
     }
 
-    // Copy All visible notes logic
+    // Copy All visible notes logic (with UX feedback)
     const btnCopyAll = document.getElementById('btn-copy-all');
     if (btnCopyAll) {
         btnCopyAll.addEventListener('click', () => {
@@ -194,6 +223,29 @@ function initElements() {
                     `Copied all ${currentlyFilteredNotes.length} visible updates to clipboard.`, 
                     'success'
                 );
+                
+                // Visual feedback on copy-all button
+                const span = btnCopyAll.querySelector('span');
+                const icon = btnCopyAll.querySelector('i');
+                const originalText = span.textContent;
+                
+                span.textContent = 'Copied All!';
+                btnCopyAll.style.borderColor = '#10b981';
+                btnCopyAll.style.color = '#10b981';
+                if (icon) {
+                    icon.setAttribute('data-lucide', 'check');
+                    lucide.createIcons();
+                }
+                
+                setTimeout(() => {
+                    span.textContent = originalText;
+                    btnCopyAll.style.borderColor = '';
+                    btnCopyAll.style.color = '';
+                    if (icon) {
+                        icon.setAttribute('data-lucide', 'copy');
+                        lucide.createIcons();
+                    }
+                }, 2000);
             }).catch(err => {
                 console.error('Copy all failed:', err);
                 showToast('Copy Failed', 'Could not copy notes to clipboard.', 'error');
@@ -201,7 +253,7 @@ function initElements() {
         });
     }
 
-    // Export CSV logic
+    // Export CSV logic (with UX feedback)
     const btnExportCsv = document.getElementById('btn-export-csv');
     if (btnExportCsv) {
         btnExportCsv.addEventListener('click', () => {
@@ -240,6 +292,29 @@ function initElements() {
                 URL.revokeObjectURL(url);
                 
                 showToast('Export Complete', `Exported ${currentlyFilteredNotes.length} notes to CSV file.`, 'success');
+                
+                // Visual feedback on export CSV button
+                const span = btnExportCsv.querySelector('span');
+                const icon = btnExportCsv.querySelector('i');
+                const originalText = span.textContent;
+                
+                span.textContent = 'Exported!';
+                btnExportCsv.style.borderColor = '#10b981';
+                btnExportCsv.style.color = '#10b981';
+                if (icon) {
+                    icon.setAttribute('data-lucide', 'check');
+                    lucide.createIcons();
+                }
+                
+                setTimeout(() => {
+                    span.textContent = originalText;
+                    btnExportCsv.style.borderColor = '';
+                    btnExportCsv.style.color = '';
+                    if (icon) {
+                        icon.setAttribute('data-lucide', 'download');
+                        lucide.createIcons();
+                    }
+                }, 2000);
             } catch (err) {
                 console.error('CSV export failed:', err);
                 showToast('Export Failed', 'Unable to create CSV file download.', 'error');
@@ -481,6 +556,19 @@ function renderNotes(notes) {
     
     // Re-bind Lucide Icons
     lucide.createIcons();
+    
+    // Highlight search keywords if active
+    if (currentSearch) {
+        const cardBodies = container.querySelectorAll('.card-body');
+        cardBodies.forEach(body => {
+            highlightSearchTerm(body, currentSearch);
+        });
+        
+        const cardDates = container.querySelectorAll('.card-date span');
+        cardDates.forEach(date => {
+            highlightSearchTerm(date, currentSearch);
+        });
+    }
 }
 
 // Copy link to clipboard helper
@@ -657,4 +745,56 @@ function showToast(title, message, type = 'info') {
             toast.remove();
         }, 400);
     }, 4000);
+}
+
+// Highlight search terms dynamically in text nodes without breaking HTML structure
+function highlightSearchTerm(element, term) {
+    if (!term) return;
+    const reg = new RegExp(`(${term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
+    
+    const walk = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+    let node;
+    const nodesToReplace = [];
+    
+    while (node = walk.nextNode()) {
+        if (node.parentNode.tagName === 'SCRIPT' || node.parentNode.tagName === 'STYLE') {
+            continue;
+        }
+        if (node.nodeValue.match(reg)) {
+            nodesToReplace.push(node);
+        }
+    }
+    
+    nodesToReplace.forEach(node => {
+        const parent = node.parentNode;
+        if (parent && (parent.tagName === 'MARK' || parent.closest('mark'))) return; // Avoid double highlighting
+        
+        const text = node.nodeValue;
+        const fragments = document.createDocumentFragment();
+        let lastIndex = 0;
+        
+        text.replace(reg, (match, p1, index) => {
+            // Text before match
+            if (index > lastIndex) {
+                fragments.appendChild(document.createTextNode(text.substring(lastIndex, index)));
+            }
+            // Highlighted match
+            const mark = document.createElement('mark');
+            mark.className = 'search-highlight';
+            mark.textContent = match;
+            fragments.appendChild(mark);
+            
+            lastIndex = index + match.length;
+            return match;
+        });
+        
+        // Text after matches
+        if (lastIndex < text.length) {
+            fragments.appendChild(document.createTextNode(text.substring(lastIndex)));
+        }
+        
+        if (parent) {
+            parent.replaceChild(fragments, node);
+        }
+    });
 }
