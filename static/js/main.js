@@ -225,18 +225,38 @@ function fallbackToClientParsing(isRefresh = false) {
                 throw new Error("XML parser error in browser");
             }
             
-            const entries = xmlDoc.getElementsByTagName("entry");
+            // Use namespace-aware query fallback for Atom feeds
+            const atomNS = "http://www.w3.org/2005/Atom";
+            let entries = xmlDoc.getElementsByTagNameNS(atomNS, "entry");
+            if (entries.length === 0) {
+                entries = xmlDoc.getElementsByTagName("entry");
+            }
+            if (entries.length === 0) {
+                entries = xmlDoc.querySelectorAll("entry");
+            }
+            
             const parsedNotes = [];
             
-            // Atom namespace might be default, querySelectorAll works well on text/xml docs
             for (let i = 0; i < entries.length; i++) {
                 const entry = entries[i];
-                const dateStr = entry.getElementsByTagName("title")[0]?.textContent?.trim() || "";
-                const updatedStr = entry.getElementsByTagName("updated")[0]?.textContent?.trim() || "";
                 
-                // Get alternate link
+                // Helper to get element text with fallback
+                const getTagText = (parentEl, tagName) => {
+                    let el = parentEl.getElementsByTagNameNS(atomNS, tagName)[0];
+                    if (!el) el = parentEl.getElementsByTagName(tagName)[0];
+                    if (!el) el = parentEl.querySelector(tagName);
+                    return el ? el.textContent.trim() : "";
+                };
+                
+                const dateStr = getTagText(entry, "title");
+                const updatedStr = getTagText(entry, "updated");
+                
+                // Get alternate link with namespace fallback
+                let links = entry.getElementsByTagNameNS(atomNS, "link");
+                if (links.length === 0) links = entry.getElementsByTagName("link");
+                if (links.length === 0) links = entry.querySelectorAll("link");
+                
                 let linkHref = "";
-                const links = entry.getElementsByTagName("link");
                 for (let j = 0; j < links.length; j++) {
                     if (links[j].getAttribute("rel") === "alternate" || !links[j].getAttribute("rel")) {
                         linkHref = links[j].getAttribute("href") || "";
@@ -247,7 +267,10 @@ function fallbackToClientParsing(isRefresh = false) {
                     linkHref = links[0].getAttribute("href") || "";
                 }
                 
-                const contentElm = entry.getElementsByTagName("content")[0];
+                // Get content HTML
+                let contentElm = entry.getElementsByTagNameNS(atomNS, "content")[0];
+                if (!contentElm) contentElm = entry.getElementsByTagName("content")[0];
+                if (!contentElm) contentElm = entry.querySelector("content");
                 const htmlContent = contentElm ? contentElm.textContent : "";
                 
                 // Parse the entry's HTML to split it by H3 categories
